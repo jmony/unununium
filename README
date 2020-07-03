@@ -1,0 +1,187 @@
+
+            .--.--.-----.--.--.-----.--.--.-----.--.--.--.--------.
+            |  |  |  .  |  |  |  .  |  |  |  .  |  |  |  |  .  .  |
+            |_____|__|__|_____|__|__|_____|__|__|__|_____|__|__|__|
+
+                                      0.1
+
+
+WHAT IS UNUNUNIUM?
+
+  Unununium is an original OS, the result of a small group of geographically
+  distributed developers connected by the internet with too much time and a
+  dislike for existing systems. <http://unununium.org/aboutus>
+
+  Currently it is little more than a toy and is not developed enough to be of
+  interest to non-developers. <http://unununium.org/status>
+
+WHAT DOES IT REQUIRE?
+
+  Currently, a 386 or better is required. Portability is an important design
+  factor, so more platforms will likely be supported in the future.
+
+  Unununium requires a multiboot compliant bootloader to boot. Generally, this
+  means GRUB <http://www.gnu.org/software/grub/>.
+
+BUILDING A SOURCE RELEASE
+
+  Building Unununium is as simple as running "make". The following freely
+  available programs are required to build Unununium:
+
+  GCC <http://gcc.gnu.org/>
+  GNU make <http://www.gnu.org/software/make/>
+  nasm <http://nasm.sf.net/>
+  pyrex <http://www.cosc.canterbury.ac.nz/~greg/python/Pyrex/>
+    must be version 0.9.2.1. Version 0.9 will complain about syntax.
+  xsltproc <http://xmlsoft.org/XSLT/>
+    A different XSLT processing program could be used by editing Make.config
+
+BOOTING A BINARY RELEASE
+
+  - uncompress the files:
+  
+		tar jxvf uuu-bin-0.1.tar.bz2
+
+  - boot "unununium.o" with a multiboot bootloader. If you are using GRUB, then
+  reboot, and enter the GRUB console. If a menu is installed, press C.
+  Otherwise, GRUB should enter the console by default. You should see a "grub>"
+  prompt. Run these commands:
+
+		root YOUR_ROOT_DEVICE
+		kernel /path/to/unununium.o
+		boot
+
+  YOUR_ROOT_DEVICE will be something like "(hd0,0)" for the first partition on
+  the first hard drive, or (fd0) for the first floppy. See
+  <http://www.gnu.org/software/grub/> or try "info grub" in your OS to learn
+  more about GRUB.
+
+  - Unununium should boot, and if everything works, you should see a "uuu / $"
+  prompt. If you see a "import site failed" message, ignore it; it is expected.
+  Run "help" to see the things that can be done. Run "reboot" to reboot cleanly
+  when done. (Note: At this point, "gatest" will not work, because the snap
+  drivers are not in the filesystem.)
+
+  If you do not see "uuu / $" but rather ">>>", then you are at the Python
+  prompt because something went wrong and the shell was not started, or the
+  shell has exited. To get back to the shell, run "import shell; shell.shell()".
+
+  If something is broken, the last section of this file for contact information.
+
+BASIC CONFIGURATION
+
+  Configuration is done through boot modules. The examples here are for GRUB; if
+  you are using a different multiboot compliant bootloader, they might not work.
+
+  For each module, there can be an associated string of arguments. In Unununium,
+  the first argument is an action, and additional arguments follow, depending on
+  the action. In GRUB, this can be done by adding a command like this after
+  "root" and before "boot":
+
+		module /path/to/a_module.py ACTION ARGUMENTS
+
+  ACTION may be one of "bind", "shell-exec", or "python-exec".
+
+  "bind" will bind the module to a name in the filesystem. This can be useful if
+  GRUB can access a file but Unununium can't; for example, it might be on a
+  filesystem other than ext2, or it might be loaded using GRUB's network
+  support. This example will bind "/home/ssmith/graphics.bpd" on GRUB's root
+  drive to "/graphics.bpd" in Unununium:
+
+		module /home/ssmith/graphics.bpd /graphics.bpd
+
+  "shell-exec" will run the module through Unununium's shell. This is commonly
+  used to mount filesystems. To get help on the available commands, boot
+  Unununium as above in "BOOTING A BINARY RELEASE" and run "help". Example:
+
+		module /home/ssmith/uuu/init.uuush shell-exec
+
+  "python-exec" executes the module as python code. This can be used to perform
+  initialization that can not be done through the shell. Example:
+
+		module /home/ssmith/uuu/init.py python-exec
+
+MORSELS OF IMPORTANT INFORMATION
+
+  ext2 support: Although Unununium has read/write ext2 support, do not mount
+  important data read/write. To mount readonly, use the "ro" option. Although
+  has no known problems, it's only a few weeks old and has been tested by only a
+  few people. The ATA driver does not have write support, so it is relatively
+  safe to mount a hard drive in Unununium. Although if mounted readonly, ext2
+  should never attempt a write, and the ATA driver should be incapable of
+  modifying any data, these things have seen little testing.
+
+  partition names: Partition names are derived from the physical layout of the
+  partition table. "/dev/ata/0" is the entire first hard drive, and
+  "/dev/ata/0/0" is the first partition on it. Extended partitions are stored on
+  disk as a partition table nested within another, and the names in Unununium
+  reflect that. For example, "/dev/ata/0/3/0" is the first partition in the
+  fourth partition on the first disk. For reasons no one can guess, some
+  versions of fdisk will only use the first two (of the total 4) entries in an
+  extended partition, creating long chains of partition tables. Thus, names such
+  as "/dev/ata/0/3/0/0/0/0" are possible. This has the advantage that device
+  names usually don't change if the disk is repartitioned, and the disadvantage
+  that it's nothing like any other system. Experimentation might be the best
+  method to find the desired partition.
+
+FUN THINGS TO TRY
+
+  hydro3d
+  
+    This is a 100% assembly demo written by Phil Frost long ago, which has been
+    included in every Unununium version to date. It expects a real VGA video
+    card, which isn't as common these days, now that most manufacturers are
+    implementing only the minimal subset of VGA, so you might not be able to see
+    anything. In any case, run 'hydro3d' at the shell to try it. Press the arrow
+    keys. Hit "Q" to reboot when you have had enough.
+
+  load more python modules
+
+    By mounting the contents of "python_modules" on the directory
+    "/lib/python2.3", Python will be able to find modules when one does
+    "import". Here's an example using the shell:
+
+	mount /dev/ata/0/0 /vol/hd ext2 ro
+	bind /vol/hd/home/ssmith/uuu-bin-0.1/python_modules /lib/python2.3
+
+  SNAP video drivers
+
+    We have support for Scitech's SNAP video drivers <http://scitechsoft.com>.
+    These are binary portable, OS independent, accelerated video drivers for
+    just about every chipset. Two drivers are included with Unununium,
+    "graphics.bpd.vbe" and "graphics.bpd.vga". The former uses VESA VBE to
+    enable higher resolutions than VGA can offer, but might not work on some
+    cards. Work is being done at Scitech to enable support for Unununium on My
+    Scitech <http://my.scitechsoft.com/navigate.php>.
+
+    SNAP requires "graphics.bpd", the driver binary, to exist in "/lib/snap".
+    SNAP also requires a directory "/lib/snap/config" in which it can create
+    new files. If the filesystem is readonly, ramfs can be mounted to satisfy
+    this condition. Here's an example of how it could be done in the shell:
+
+      mount /dev/ata/0/0 /vol/hd ext2 ro
+      bind /vol/hd/home/ssmith/uuu-0.1/graphics.bpd.vbe /lib/snap/graphics.bpd
+      mount none /lib/snap/config ramfs
+
+    "graphics.bpd" could also be loaded as a module by GRUB and bound, like so,
+    in the GRUB shell:
+
+      module /home/ssmith/uuu-0.1/graphics.bpd.vbe bind /lib/snap/graphics.bpd
+
+    Once the prerequisites are met, run "gatest" in the shell, and you should
+    see an interactive menu to run various tests. Begin with the interactive
+    tests, option 0. Other tests might not work.
+
+GETTING MORE INFORMATION
+
+  Unununium's home on the WWW is <http://unununium.org/>. There one can find
+  links to many other Unununium things.
+
+  If you are having trouble booting or you think something is broken, you may
+  request help from the Unununium developers by sending mail to
+  <uuu-devel@unununium.org>. Please include a detailed description of exactly
+  what you did, what you expected to happen, and what really did happen. If
+  there is a traceback, reproduce it exactly.
+
+  Developers are also known to congregate in #uuu on irc.oftc.net. If you would
+  benefit from a dialog with knowledgeable people, this is the place to be.
